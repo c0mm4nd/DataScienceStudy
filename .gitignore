@@ -1,0 +1,7 @@
+*.pw
+pw.*
+temp.*
+*.temp
+.vscode
+*.pyc
+

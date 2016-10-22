@@ -2,10 +2,7 @@
 import requests
 from lxml import etree
 from pymongo import MongoClient
-from django_html_cleaner import cleaner
 from htmllaundry import strip_markup
-import jieba
-import sys
 import HTMLParser
 
 headers = {
@@ -39,8 +36,8 @@ def pointedWechatOfficialAccountsArticles(wechatOfficialAccountName):
     while i >= 0 :
         url = "http://chuansong.me/account/" + wechatOfficialAccountName + "?start=" + str(i)
         html = requests.get(url, headers=headers).text
-        et = etree.HTML(html)
-        list = et.xpath("//h2/span/a")
+        etree_html = etree.HTML(html)
+        list = etree_html.xpath("//h2/span/a")
         # print list
         for element in list :
             urlList.append("chuansong.me" + element.attrib["href"])
@@ -63,7 +60,7 @@ def saveArticlesToMongo(urlList):
         print "start read article in " + url
         html = requests.get(url, headers=headers).text
         try:
-            articleNCR = etree.tostring(etree.HTML(html).xpath("//div[@id='page-content']")[0])
+            articleNCR = etree.toString(etree.HTML(html).xpath("//div[@id='page-content']")[0])
             #
             h = HTMLParser.HTMLParser()      # local encode
             article = h.unescape(strip_markup(articleNCR))
@@ -72,7 +69,7 @@ def saveArticlesToMongo(urlList):
                 "content": article,
             })
             print "finish insert article in " + url
-        except:
+        except Exception, e:
             log = open("urlfailed.log","a")
             log.write(url + "\n")
             log.close()
@@ -83,4 +80,4 @@ def saveArticlesToMongo(urlList):
     pass
 
 # saveArticlesToMongo(pullLatestHotArticles())
-print pointedWechatOfficialAccountsArticles("xineuro")
+print saveArticlesToMongo(pointedWechatOfficialAccountsArticles("xineuro"))
