@@ -4,6 +4,7 @@ from lxml import etree
 from pymongo import MongoClient
 from htmllaundry import strip_markup
 import HTMLParser
+import time
 
 headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:43.0) Gecko/20100101 Firefox/43.0',
@@ -18,7 +19,7 @@ def pullLatestHotArticles():
     ''' 全部文章中 的 热门 '''
     url = "http://werank.cn/"
     urlList = []
-    html = requests.get(url).text
+    html = requests.Session().get(url).text
     et = etree.HTML(html)
     list = et.xpath("//table/tbody/tr/td[2]/a")
     # print list
@@ -35,12 +36,12 @@ def pointedWechatOfficialAccountsArticles(wechatOfficialAccountName):
     i = 0
     while i >= 0 :
         url = "http://chuansong.me/account/" + wechatOfficialAccountName + "?start=" + str(i)
-        html = requests.get(url, headers=headers).text
+        html = requests.Session().get(url, headers=headers).text
         etree_html = etree.HTML(html)
         list = etree_html.xpath("//h2/span/a")
         # print list
         for element in list :
-            urlList.append("chuansong.me" + element.attrib["href"])
+            urlList.append("http://chuansong.me" + element.attrib["href"])
         if len(list) < 12 :
             break
         i = i + 12
@@ -57,23 +58,25 @@ def saveArticlesToMongo(urlList):
         exit()
     # print urlList
     for url in urlList:
+    	time.sleep(5)
         print "start read article in " + url
-        html = requests.get(url, headers=headers).text
-        try:
-            articleNCR = etree.toString(etree.HTML(html).xpath("//div[@id='page-content']")[0])
-            #
-            h = HTMLParser.HTMLParser()      # local encode
-            article = h.unescape(strip_markup(articleNCR))
-            db.articles.insert({
-                "url": url,
-                "content": article,
-            })
-            print "finish insert article in " + url
-        except Exception, e:
-            log = open("urlfailed.log","a")
-            log.write(url + "\n")
-            log.close()
-            print "failed on url " + url
+        html = requests.Session().get(url, headers=headers).text
+        print requests.Session().get(url, headers=headers).status_code
+        # try:
+        articleNCR = etree.tostring(etree.HTML(html).xpath("//div[@id='page-content']")[0])
+        #
+        h = HTMLParser.HTMLParser()      # local encode
+        article = h.unescape(strip_markup(articleNCR))
+        db.articles.insert({
+            "url": url,
+            "content": article,
+        })
+        print "finish insert article in " + url
+        # except Exception, e:
+        #     log = open("urlfailed.log","a")
+        #     log.write(url + "\n")
+        #     log.close()
+        #     print "failed on url " + url
         # words = jieba.cut(strip_markup(article))
         # for word in words :
         #     print word
